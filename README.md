@@ -230,7 +230,7 @@ docker compose -f docker-compose.yml -f docker-compose.observability.yml up -d
 | Tool | URL | 用途 |
 |---|---|---|
 | Prometheus | http://localhost:9090 | 收集 metrics |
-| Grafana | http://localhost:3001 | Dashboard，帳密 `admin` / `admin` |
+| Grafana | http://localhost:3001 | Dashboard|
 | Alertmanager | http://localhost:9093 | 告警路由 |
 | Loki | http://localhost:3100 | 集中存放 logs |
 | Promtail | N/A | 從 Docker 收集 logs 到 Loki |
