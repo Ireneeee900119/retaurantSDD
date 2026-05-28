@@ -1,0 +1,29 @@
+groups:
+  - name: restaurant-sdd
+    rules:
+      - alert: BackendDown
+        expr: up{job="restaurant-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "restaurantSDD backend is down"
+          description: "Prometheus cannot scrape backend metrics for more than 1 minute."
+
+      - alert: HighHttp5xxRate
+        expr: sum(rate(restaurant_http_requests_total{status_code=~"5.."}[5m])) > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "restaurantSDD has elevated 5xx errors"
+          description: "Backend is returning more than 1 HTTP 5xx response per second over 5 minutes."
+
+      - alert: HighP95Latency
+        expr: histogram_quantile(0.95, sum(rate(restaurant_http_request_duration_seconds_bucket[5m])) by (le)) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "restaurantSDD P95 latency is high"
+          description: "Backend P95 latency is above 2 seconds for 5 minutes."

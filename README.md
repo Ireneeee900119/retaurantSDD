@@ -173,6 +173,100 @@ API_BASE_URL=http://127.0.0.1:3000/api/v1 node scripts/load-test-ha.mjs
 4. 提高 `ORDER_WORKER_CONCURRENCY`，並觀察 Postgres CPU/lock
 5. 加 Prometheus/Grafana 或 cloud monitoring
 
+## DevOps & Monitoring
+
+### CI/CD
+
+GitHub Actions workflow 位於：
+
+```text
+.github/workflows/ci-cd.yml
+```
+
+行為：
+
+- PR：安裝依賴、產生 Prisma Client、build backend、跑 backend test、build frontend
+- push 到 `main`：額外 build Docker images 並推到 GHCR
+- 若啟用部署 secrets：自動部署到遠端 Docker host，禁止手動 SSH 上機部署
+
+GHCR image：
+
+```text
+ghcr.io/ireneeee900119/restaurantsdd-backend:latest
+ghcr.io/ireneeee900119/restaurantsdd-frontend:latest
+```
+
+可選的部署設定：
+
+```text
+Repository Variables:
+DEPLOY_ENABLED=true
+BACKEND_REPLICAS=2
+
+Repository Secrets:
+DEPLOY_HOST=<server-ip-or-hostname>
+DEPLOY_USER=<ssh-user>
+DEPLOY_SSH_KEY=<private-key>
+DEPLOY_PATH=<remote-project-path>
+GHCR_PAT=<github-token-with-package-read-access>
+```
+
+Production compose 範本：
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --remove-orphans --scale backend=2
+```
+
+### Monitoring
+
+啟動觀測堆疊：
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.observability.yml up -d
+```
+
+服務：
+
+| Tool | URL | 用途 |
+|---|---|---|
+| Prometheus | http://localhost:9090 | 收集 metrics |
+| Grafana | http://localhost:3001 | Dashboard，帳密 `admin` / `admin` |
+| Alertmanager | http://localhost:9093 | 告警路由 |
+| Loki | http://localhost:3100 | 集中存放 logs |
+| Promtail | N/A | 從 Docker 收集 logs 到 Loki |
+
+Backend metrics：
+
+```bash
+curl http://localhost:3000/api/v1/metrics
+```
+
+主要指標：
+
+- `restaurant_http_requests_total`
+- `restaurant_http_request_duration_seconds`
+- Node.js process metrics
+
+Grafana 已預先 provision：
+
+- Prometheus datasource
+- Loki datasource
+- `restaurantSDD Overview` dashboard
+
+Prometheus alert rules：
+
+- `BackendDown`
+- `HighHttp5xxRate`
+- `HighP95Latency`
+
+Alertmanager 預設 webhook 是本機 placeholder：
+
+```text
+http://host.docker.internal:9999/alerts
+```
+
+正式部署時請替換成 Slack、Discord、Email、PagerDuty 或公司事件平台，不要把 webhook secret commit 進 repo。
+
 ## 專案結構
 
 ```text
@@ -181,6 +275,8 @@ frontend/                React + Vite frontend
 scripts/load-test-ha.mjs 高併發壓測腳本
 specs/002-platform-arch/ Spec Kit 架構文件
 docker-compose.yml       Postgres + Redis + backend + frontend
+docker-compose.observability.yml Prometheus + Grafana + Loki + Promtail
+docker-compose.prod.yml  Production image-based deployment
 ```
 
 ## Troubleshooting
@@ -210,4 +306,3 @@ docker compose exec backend node dist/prisma/seed.js
 ```bash
 curl http://localhost:3000/api/v1/health
 ```
-
