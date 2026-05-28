@@ -1,8 +1,7 @@
-version: '3.9'
-
 services:
   db:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -17,28 +16,49 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    restart: unless-stopped
     ports:
       - '3000:3000'
     environment:
       DATABASE_WRITE_URL: postgresql://postgres:postgres@db:5432/restaurant
       DATABASE_READ_URL: postgresql://postgres:postgres@db:5432/restaurant
+      REDIS_URL: redis://redis:6379
+      ORDER_MODE: async
+      ORDER_WORKER_CONCURRENCY: 4
+      MAX_ORDER_QUEUE_DEPTH: 1000
       PORT: 3000
       NODE_ENV: development
     depends_on:
       db:
         condition: service_healthy
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:3000/api/v1/health >/dev/null || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    restart: unless-stopped
     ports:
       - '5173:5173'
     environment:

@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { OrderStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { CacheService } from '../cache/cache.service';
 
 const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   RECEIVED: [OrderStatus.PREPARING, OrderStatus.CANCELLED],
@@ -12,7 +13,10 @@ const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
 
 @Injectable()
 export class StaffService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
 
   async listOrders(status?: OrderStatus) {
     const where = status ? { status } : {};
@@ -80,6 +84,7 @@ export class StaffService {
       where: { referenceNumber },
       data: { status: newStatus },
     });
+    await this.cache.del(`order:status:${referenceNumber}`);
 
     return {
       referenceNumber,
@@ -97,6 +102,8 @@ export class StaffService {
       where: { id: itemId },
       data: { isAvailable },
     });
+    await this.cache.del('menu:full');
+    await this.cache.delByPrefix('menu:category:');
 
     return {
       itemId: updated.id,
