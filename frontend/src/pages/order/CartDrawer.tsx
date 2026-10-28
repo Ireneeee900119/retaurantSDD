@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import axios from 'axios';
 import { useCart } from './CartContext';
 import { placeOrder } from '../../services/order.service';
 import OrderConfirmation from './OrderConfirmation';
@@ -8,17 +9,29 @@ interface Props {
   onClose: () => void;
 }
 
+interface ValidationErrorDetail {
+  field?: string;
+  message?: string;
+}
+
+interface ValidationErrorBody {
+  error?: string;
+  details?: ValidationErrorDetail[];
+}
+
 export default function CartDrawer({ open, onClose }: Props) {
   const { items, total, updateQuantity, removeItem, clearCart } = useCart();
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [refNumber, setRefNumber] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [itemErrors, setItemErrors] = useState<string[]>([]);
 
   const handleSubmit = async () => {
     if (items.length === 0) return;
     setSubmitting(true);
     setError(null);
+    setItemErrors([]);
     try {
       const result = await placeOrder({
         items: items.map((ci) => ({ menuItemId: ci.item.id, quantity: ci.quantity })),
@@ -26,8 +39,20 @@ export default function CartDrawer({ open, onClose }: Props) {
       });
       setRefNumber(result.referenceNumber);
       clearCart();
-    } catch {
-      setError('送出失敗，請再試一次');
+    } catch (err) {
+      const body = axios.isAxiosError(err)
+        ? (err.response?.data as ValidationErrorBody | undefined)
+        : undefined;
+      const messages = body?.error === 'VALIDATION_ERROR' && Array.isArray(body.details)
+        ? body.details
+            .map((d) => d?.message)
+            .filter((m): m is string => typeof m === 'string' && m.length > 0)
+        : [];
+      if (messages.length > 0) {
+        setItemErrors(messages);
+      } else {
+        setError('送出失敗，請再試一次');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -84,6 +109,17 @@ export default function CartDrawer({ open, onClose }: Props) {
               onChange={(e) => setNote(e.target.value)}
               rows={2}
             />
+
+            {itemErrors.length > 0 && (
+              <div className="item-errors" role="alert">
+                <p className="item-errors-title">以下品項目前無供應，請移除後再送出：</p>
+                <ul className="item-errors-list">
+                  {itemErrors.map((msg, idx) => (
+                    <li key={idx}>{msg}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {error && <p className="error">{error}</p>}
 
