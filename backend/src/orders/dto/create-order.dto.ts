@@ -21,7 +21,4 @@ export class CreateOrderDto {
   @IsString()
   customerNote?: string;
 
-  @IsOptional()
-  @IsString()
-  idempotencyKey?: string;
 }

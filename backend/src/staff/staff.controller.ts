@@ -8,8 +8,16 @@ export class StaffController {
   constructor(private readonly staffService: StaffService) {}
 
   @Get('orders')
-  listOrders(@Query('status') status?: OrderStatus) {
-    return this.staffService.listOrders(status);
+  listOrders(
+    @Query('status') status?: OrderStatus,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    return this.staffService.listOrders(
+      status,
+      limit ? Number(limit) : 50,
+      offset ? Number(offset) : 0,
+    );
   }
 
   @Get('orders/:referenceNumber')

@@ -50,18 +50,6 @@ model Order {
   @@index([status, createdAt])
 }
 
-model IdempotencyRecord {
-  id              String   @id @default(uuid())
-  key             String   @unique @db.VarChar(100)
-  referenceNumber String   @unique @db.VarChar(20)
-  requestHash     String   @db.VarChar(64)
-  status          String   @default("QUEUED") @db.VarChar(30)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  @@index([status, createdAt])
-}
-
 model OrderItem {
   id         String   @id @default(uuid())
   orderId    String

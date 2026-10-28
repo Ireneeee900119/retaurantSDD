@@ -30,7 +30,6 @@ export interface OrderResponse {
 }
 
 export interface PlaceOrderRequest {
-  idempotencyKey: string;
   items: { menuItemId: string; quantity: number }[];
   customerNote?: string;
 }

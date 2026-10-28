@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { OrderStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { CacheService } from '../cache/cache.service';
+import { MenuService } from '../menu/menu.service';
 
 const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   RECEIVED: [OrderStatus.PREPARING, OrderStatus.CANCELLED],
@@ -15,17 +15,22 @@ const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
 export class StaffService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly cache: CacheService,
+    private readonly menu: MenuService,
   ) {}
 
-  async listOrders(status?: OrderStatus) {
+  async listOrders(status?: OrderStatus, limit = 50, offset = 0) {
     const where = status ? { status } : {};
-    const orders = await this.prisma.order.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-      include: { _count: { select: { items: true } } },
-    });
+    const cap = Math.min(limit, 200);
+    const [orders, total] = await this.prisma.$transaction([
+      this.prisma.order.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: cap,
+        skip: offset,
+        include: { _count: { select: { items: true } } },
+      }),
+      this.prisma.order.count({ where }),
+    ]);
 
     return {
       orders: orders.map((o) => ({
@@ -37,9 +42,9 @@ export class StaffService {
         customerNote: o.customerNote,
         createdAt: o.createdAt,
       })),
-      total: orders.length,
-      limit: 50,
-      offset: 0,
+      total,
+      limit: cap,
+      offset,
     };
   }
 
@@ -84,7 +89,6 @@ export class StaffService {
       where: { referenceNumber },
       data: { status: newStatus },
     });
-    await this.cache.del(`order:status:${referenceNumber}`);
 
     return {
       referenceNumber,
@@ -94,22 +98,7 @@ export class StaffService {
     };
   }
 
-  async toggleItemAvailability(itemId: string, isAvailable: boolean) {
-    const item = await this.prisma.menuItem.findUnique({ where: { id: itemId } });
-    if (!item) throw new NotFoundException({ error: 'ITEM_NOT_FOUND' });
-
-    const updated = await this.prisma.menuItem.update({
-      where: { id: itemId },
-      data: { isAvailable },
-    });
-    await this.cache.del('menu:full');
-    await this.cache.delByPrefix('menu:category:');
-
-    return {
-      itemId: updated.id,
-      name: updated.name,
-      isAvailable: updated.isAvailable,
-      updatedAt: updated.updatedAt,
-    };
+  toggleItemAvailability(itemId: string, isAvailable: boolean) {
+    return this.menu.toggleItemAvailability(itemId, isAvailable);
   }
 }

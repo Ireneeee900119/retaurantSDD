@@ -6,8 +6,9 @@ export class MenuController {
   constructor(private readonly menuService: MenuService) {}
 
   @Get()
-  getFullMenu() {
-    return this.menuService.getFullMenu();
+  async getFullMenu() {
+    const categories = await this.menuService.getFullMenu();
+    return { categories };
   }
 
   @Get('categories/:categoryId/items')

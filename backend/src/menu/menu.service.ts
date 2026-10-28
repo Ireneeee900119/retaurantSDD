@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import type { MenuItem } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CacheService } from '../cache/cache.service';
 import { MenuCategoryDto, MenuItemDto } from './dto/menu-response.dto';
@@ -65,7 +66,26 @@ export class MenuService {
     return this.toItemDto(item);
   }
 
-  private toItemDto(item: any): MenuItemDto {
+  async toggleItemAvailability(itemId: string, isAvailable: boolean) {
+    const item = await this.prisma.menuItem.findUnique({ where: { id: itemId } });
+    if (!item) throw new NotFoundException({ error: 'ITEM_NOT_FOUND' });
+
+    const updated = await this.prisma.menuItem.update({
+      where: { id: itemId },
+      data: { isAvailable },
+    });
+    await this.cache.del('menu:full');
+    await this.cache.delByPrefix('menu:category:');
+
+    return {
+      itemId: updated.id,
+      name: updated.name,
+      isAvailable: updated.isAvailable,
+      updatedAt: updated.updatedAt,
+    };
+  }
+
+  private toItemDto(item: MenuItem): MenuItemDto {
     return {
       id: item.id,
       name: item.name,

@@ -21,7 +21,6 @@ export default function CartDrawer({ open, onClose }: Props) {
     setError(null);
     try {
       const result = await placeOrder({
-        idempotencyKey: crypto.randomUUID(),
         items: items.map((ci) => ({ menuItemId: ci.item.id, quantity: ci.quantity })),
         customerNote: note || undefined,
       });
