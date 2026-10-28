@@ -101,4 +101,12 @@ export class StaffService {
   toggleItemAvailability(itemId: string, isAvailable: boolean) {
     return this.menu.toggleItemAvailability(itemId, isAvailable);
   }
+
+  toggleCategoryActive(categoryId: string, isActive: boolean) {
+    return this.menu.toggleCategoryActive(categoryId, isActive);
+  }
+
+  listAllCategoriesForAdmin() {
+    return this.menu.listAllCategoriesForAdmin();
+  }
 }

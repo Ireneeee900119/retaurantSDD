@@ -85,6 +85,50 @@ export class MenuService {
     };
   }
 
+  async toggleCategoryActive(categoryId: string, isActive: boolean) {
+    const category = await this.prisma.menuCategory.findUnique({ where: { id: categoryId } });
+    if (!category) throw new NotFoundException({ error: 'CATEGORY_NOT_FOUND' });
+
+    const updated = await this.prisma.menuCategory.update({
+      where: { id: categoryId },
+      data: { isActive },
+    });
+    await this.cache.del('menu:full');
+    await this.cache.delByPrefix('menu:category:');
+
+    return {
+      categoryId: updated.id,
+      name: updated.name,
+      isActive: updated.isActive,
+      updatedAt: updated.updatedAt,
+    };
+  }
+
+  async listAllCategoriesForAdmin() {
+    const categories = await this.prisma.menuCategory.findMany({
+      orderBy: { displayOrder: 'asc' },
+      include: {
+        items: { orderBy: { displayOrder: 'asc' } },
+      },
+    });
+
+    return {
+      categories: categories.map((cat) => ({
+        id: cat.id,
+        name: cat.name,
+        displayOrder: cat.displayOrder,
+        isActive: cat.isActive,
+        items: cat.items.map((item) => ({
+          id: item.id,
+          name: item.name,
+          price: item.price.toString(),
+          isAvailable: item.isAvailable,
+          displayOrder: item.displayOrder,
+        })),
+      })),
+    };
+  }
+
   private toItemDto(item: MenuItem): MenuItemDto {
     return {
       id: item.id,
