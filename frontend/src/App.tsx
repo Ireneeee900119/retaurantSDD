@@ -4,7 +4,8 @@ import Header from './components/Header';
 import MenuPage from './pages/menu/MenuPage';
 import TrackOrderPage from './pages/track/TrackOrderPage';
 import StaffShell from './pages/staff/StaffShell';
-import StaffPlaceholder from './pages/staff/StaffPlaceholder';
+import StaffOrdersPage from './pages/staff/StaffOrdersPage';
+import StaffOrderDetailPage from './pages/staff/StaffOrderDetailPage';
 import AdminShell from './pages/admin/AdminShell';
 import AvailabilityDashboard from './pages/admin/AvailabilityDashboard';
 import './App.css';
@@ -20,7 +21,8 @@ function App() {
             <Route path="/menu" element={<MenuPage />} />
             <Route path="/track" element={<TrackOrderPage />} />
             <Route path="/staff" element={<StaffShell />}>
-              <Route index element={<StaffPlaceholder />} />
+              <Route index element={<StaffOrdersPage />} />
+              <Route path="orders/:ref" element={<StaffOrderDetailPage />} />
             </Route>
             <Route path="/admin" element={<AdminShell />}>
               <Route index element={<AvailabilityDashboard />} />
