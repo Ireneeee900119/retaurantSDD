@@ -6,7 +6,7 @@ import TrackOrderPage from './pages/track/TrackOrderPage';
 import StaffShell from './pages/staff/StaffShell';
 import StaffPlaceholder from './pages/staff/StaffPlaceholder';
 import AdminShell from './pages/admin/AdminShell';
-import AdminPlaceholder from './pages/admin/AdminPlaceholder';
+import AvailabilityDashboard from './pages/admin/AvailabilityDashboard';
 import './App.css';
 
 function App() {
@@ -23,7 +23,7 @@ function App() {
               <Route index element={<StaffPlaceholder />} />
             </Route>
             <Route path="/admin" element={<AdminShell />}>
-              <Route index element={<AdminPlaceholder />} />
+              <Route index element={<AvailabilityDashboard />} />
             </Route>
           </Routes>
         </main>

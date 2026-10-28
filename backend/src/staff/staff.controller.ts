@@ -2,6 +2,8 @@ import { Body, Controller, Get, Param, Patch, Query } from '@nestjs/common';
 import { OrderStatus } from '@prisma/client';
 import { StaffService } from './staff.service';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { ToggleItemAvailabilityDto } from './dto/toggle-item-availability.dto';
+import { ToggleCategoryActiveDto } from './dto/toggle-category-active.dto';
 
 @Controller('staff')
 export class StaffController {
@@ -33,11 +35,24 @@ export class StaffController {
     return this.staffService.updateOrderStatus(ref, dto.status);
   }
 
+  @Get('menu/categories')
+  listAllCategories() {
+    return this.staffService.listAllCategoriesForAdmin();
+  }
+
   @Patch('menu/items/:itemId/availability')
   toggleAvailability(
     @Param('itemId') itemId: string,
-    @Body() body: { isAvailable: boolean },
+    @Body() dto: ToggleItemAvailabilityDto,
   ) {
-    return this.staffService.toggleItemAvailability(itemId, body.isAvailable);
+    return this.staffService.toggleItemAvailability(itemId, dto.isAvailable);
+  }
+
+  @Patch('menu/categories/:categoryId/active')
+  toggleCategoryActive(
+    @Param('categoryId') categoryId: string,
+    @Body() dto: ToggleCategoryActiveDto,
+  ) {
+    return this.staffService.toggleCategoryActive(categoryId, dto.isActive);
   }
 }
